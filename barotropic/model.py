@@ -34,8 +34,7 @@ class BarotropicModel(object):
 
     """
 
-    def __init__(self, nlon, nlat, truncation, dt, start_time,
-                 uv=None, vrt=None,
+    def __init__(self, vrt, truncation, dt, start_time,
                  robert_coefficient=0.04, damping_coefficient=1e-4,
                  damping_order=4):
         """
@@ -43,10 +42,10 @@ class BarotropicModel(object):
 
         Arguments:
 
-        * nlon, nlat : int
-            The model grid shape. The model grid is a Gaussian grid
-            (i.e., not a regular cartesian grid) requiring nlat to be
-            even. In general nlon will be double nlat.
+        * vrt : numpy.ndarray[nlat, nlon]
+            An initial vorticity field on the desired model grid. The
+            grid is assumed to be Gaussian grid, and in general nlon is
+            double nlat.
 
         * truncation : int
             The spectral truncation (triangular). A suggested value is
@@ -59,13 +58,6 @@ class BarotropicModel(object):
             A datetime object representing the start time of the model
             run. This doesn't affect computation, it is only used for
             metadata.
-
-        Keyword arguments:
-
-        * uv or vrt
-            Supply one of uv, which is a 2-tuple containing u and v wind
-            components, or vrt which is a vorticity field. The fields are
-            numpy arrays of shape (nlat, nlon).
 
         Optional arguments:
 
@@ -80,8 +72,7 @@ class BarotropicModel(object):
 
         """
         # Model grid size:
-        self.nlon = nlon
-        self.nlat = nlat
+        self.nlat, self.nlon = vrt.shape
         # Filtering properties:
         self.robert_coefficient = robert_coefficient
         # Initialize the spectral transforms engine:
@@ -92,14 +83,14 @@ class BarotropicModel(object):
         self.damping = damping_coefficient * \
                        (el / el[truncation]) ** damping_order
         # Initialize the grid and spectral model variables:
-        self.u_grid = np.zeros([nlat, nlon], dtype=np.float64)
-        self.v_grid = np.zeros([nlat, nlon], dtype=np.float64)
-        self.vrt_grid = np.zeros([nlat, nlon], dtype=np.float64)
+        self.u_grid = np.zeros([self.nlat, self.nlon], dtype=np.float64)
+        self.v_grid = np.zeros([self.nlat, self.nlon], dtype=np.float64)
+        self.vrt_grid = np.zeros([self.nlat, self.nlon], dtype=np.float64)
         nspec = (truncation + 1) * (truncation + 2) // 2
         self.vrt_spec = np.zeros([nspec], dtype=np.complex128)
         self.vrt_spec_prev = np.zeros([nspec], dtype=np.complex128)
         # Set the initial state:
-        self.set_state(uv=uv, vrt=vrt)
+        self.set_state(vrt)
         # Pre-compute the Coriolis parameter on the model grid:
         lats, _ = self.engine.grid_latlon()
         self.f = 2 * 7.29e-5 * np.sin(np.deg2rad(lats))[:, np.newaxis]
@@ -118,42 +109,24 @@ class BarotropicModel(object):
         """
         return self.start_time + timedelta(seconds=self.t)
 
-    def set_state(self, uv=None, vrt=None):
+    def set_state(self, vrt):
         """
-        Set the model state with either winds or vorticity.
+        Set the model state from an initial vorticity.
 
-        The winds/vorticity must be in grid space, and the grid must
-        match the model grid. You cannot provide both winds and
-        vorticity.
+        The vorticity must be in grid space, this method will transform
+        the vorticity to spectral space using the model truncation, and
+        the initial grid vorticity will be computed by converting the
+        spectral vorticity back to grid space. This ensures the initial
+        grid and spectral vorticity fields are equivalent.
 
-        Keyword arguments:
+        Argument:
 
-        * uv : 2-tuple of numpy.ndarray
-            A tuple containing the u and v components of wind on the
-            model grid.
-
-        * vrt : numpy.cdarray
-            The grid vorticity.
+        * vrt : numpy.ndarray[nlat, nlon]
+            The model grid vorticity.
 
         """
-        if uv is not None and vrt is not None:
-            raise ValueError("please provide only one of 'uv' or 'vrt'")
-        if uv is None and vrt is None:
-            raise ValueError("please provide one of 'uv' or 'vrt'")
-        if uv is not None:
-            # Winds were provided, convert to spectral vorticity:
-            try:
-                self.vrt_spec[:] = self.engine.vrtdiv_spec_from_uv_grid(*uv)
-            except:
-                msg = "provided u and v do not match the model grid"
-                raise ValueError(msg)
-        else:
-            # Convert grid vorticity to spectral vorticity:
-            try:
-                self.vrt_spec[:] = self.engine.grid_to_spec(vrt)
-            except ValueError:
-                msg = "provided vorticity does not match the model grid"
-                raise ValueError(msg)
+        # Convert grid vorticity to spectral vorticity:
+        self.vrt_spec[:] = self.engine.grid_to_spec(vrt)
         # Compute grid vorticity from spectral vorticity (to ensure it is
         # consistent with the spectral form):
         self.vrt_grid[:] = self.engine.spec_to_grid(self.vrt_spec)
