@@ -73,6 +73,11 @@ class NetCDFWriter(object):
         longitude.setncatts({'standard_name': 'longitude',
                              'units': 'degrees_east'})
         latitude[:], longitude[:] = self.model.engine.grid_latlon()
+        lat_lon = self.ds.createVariable('latitude_longitude', 'i4')
+        lat_lon.setncatts({'grid_mapping_name': 'latitude_longitude',
+                           'longitude_of_prime_meridian': 0.,
+	                       'semi_major_axis': 6371229.,
+		                   'semi_minor_axis': 6371229.})
         # Create variables to hold the model state:
         self.u = self.ds.createVariable(
             'uwnd',
@@ -89,11 +94,15 @@ class NetCDFWriter(object):
             'f4',
             dimensions=['time', 'latitude', 'longitude'],
             zlib=True)
-        self.u.setncatts({'standard_name': 'eastward_wind', 'units': 'm s-1'})
+        self.u.setncatts({'standard_name': 'eastward_wind',
+                          'units': 'm s-1',
+                          'grid_mapping': 'latitude_longitude'})
         self.v.setncatts({'standard_name': 'northward_wind',
-                          'units': 'm s-1'})
+                          'units': 'm s-1',
+                          'grid_mapping': 'latitude_longitude'})
         self.vrt.setncatts({'standard_name': 'atmosphere_relative_vorticity',
-                            'units': 's-1'})
+                            'units': 's-1',
+                            'grid_mapping': 'latitude_longitude'})
 
     def __del__(self):
         """

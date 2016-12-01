@@ -15,9 +15,9 @@ The `barotropic` package requires the following dependencies:
 
 The example notebook requires in addition:
 
-* cartopy
+* ipython-notebook (jupyter)
 * iris
-* matplotlib
+* geoviews
 
 
 ## Using the model
