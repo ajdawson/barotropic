@@ -13,11 +13,14 @@ The `barotropic` package requires the following dependencies:
 * netCDF4
 * pyspharm
 
+*[pyspharm is not available on 64-bit Windows, or 32-/64-bit Windows combined
+with Python 3]*
+
 The example notebook requires in addition:
 
 * ipython-notebook (jupyter)
 * iris
-* geoviews
+* cube_browser
 
 
 ## Using the model
