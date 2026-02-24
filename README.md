@@ -1,11 +1,16 @@
-# A spectral barotropic model in Python
+# DEPRECATED
+
+This repository is obsolete, for a more modern alternative see
+https://github.com/ajdawson/python-barotropic-model
+
+## A spectral barotropic model in Python
 
 This repository contains a package `barotropic` that conatains code for
 solving the non-divergent barotropic vorticity equation using a spectral
 method.
 
 
-## Requirements
+### Requirements
 
 The `barotropic` package requires the following dependencies:
 
@@ -23,6 +28,6 @@ The example notebook requires in addition:
 * [cube_browser](http://scitools.github.io/cube_browser/)
 
 
-## Using the model
+### Using the model
 
 See the example notebook [`simple_models.ipynb`](http://nbviewer.jupyter.org/github/ajdawson/barotropic/blob/master/simple_models.ipynb).
